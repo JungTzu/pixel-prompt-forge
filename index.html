@@ -1,0 +1,1806 @@
+<!DOCTYPE html>
+<html lang="zh-TW" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PIXEL PROMPT FORGE｜8-Bit AI 繪圖靈感鍛造屋</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Noto+Sans+TC:wght@400;500;700;900&family=Press+Start+2P&display=swap" rel="stylesheet">
+  <style>
+    :root[data-theme="dark"] {
+      --bg-main: #12101b;
+      --bg-panel: #1d192b;
+      --bg-card: #28233c;
+      --bg-input: #151221;
+      --text-main: #f4f1ea;
+      --text-muted: #a39bbb;
+      --accent-primary: #ff6b35;
+      --accent-secondary: #00e5a3;
+      --accent-gold: #ffd166;
+      --accent-purple: #b565f7;
+      --border-outer: #09070e;
+      --border-inner: #4a4168;
+      --border-highlight: #6c6093;
+      --shadow-pixel: #09070e;
+      --scanline-opacity: 0.06;
+    }
+
+    :root[data-theme="light"] {
+      --bg-main: #f3ead8;
+      --bg-panel: #fff9eb;
+      --bg-card: #efe2c6;
+      --bg-input: #ffffff;
+      --text-main: #2b2118;
+      --text-muted: #6e5a47;
+      --accent-primary: #d94e1f;
+      --accent-secondary: #1b8a5a;
+      --accent-gold: #d98a00;
+      --accent-purple: #6b3fa0;
+      --border-outer: #2b2118;
+      --border-inner: #8c7355;
+      --border-highlight: #c9b18c;
+      --shadow-pixel: #2b2118;
+      --scanline-opacity: 0.025;
+    }
+
+    * {
+      box-sizing: border-box;
+      image-rendering: pixelated;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: 'DotGothic16', 'Noto Sans TC', sans-serif;
+      transition: background-color 0.25s ease, color 0.25s ease;
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Retro CRT Scanline Overlay */
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 2px,
+        rgba(0, 0, 0, var(--scanline-opacity)) 3px,
+        rgba(0, 0, 0, var(--scanline-opacity)) 4px
+      );
+      pointer-events: none;
+      z-index: 40;
+    }
+
+    .font-pixel-en {
+      font-family: 'Press Start 2P', monospace;
+    }
+
+    /* 8-bit Pixel Box Styling */
+    .pixel-box {
+      background-color: var(--bg-panel);
+      border: 3px solid var(--border-outer);
+      box-shadow:
+        inset -3px -3px 0px 0px var(--border-inner),
+        inset 3px 3px 0px 0px var(--border-highlight),
+        4px 4px 0px 0px var(--shadow-pixel);
+    }
+
+    .pixel-card {
+      background-color: var(--bg-card);
+      border: 2px solid var(--border-outer);
+      box-shadow:
+        inset -2px -2px 0px 0px var(--border-inner),
+        2px 2px 0px 0px var(--shadow-pixel);
+    }
+
+    .pixel-input {
+      background-color: var(--bg-input);
+      color: var(--text-main);
+      border: 2px solid var(--border-outer);
+      box-shadow: inset 2px 2px 0px 0px rgba(0, 0, 0, 0.35);
+    }
+
+    .pixel-input:focus {
+      outline: 2px dashed var(--accent-gold);
+      outline-offset: 1px;
+    }
+
+    /* 8-bit Pixel Button */
+    .pixel-btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      border: 2px solid var(--border-outer);
+      box-shadow:
+        inset -2px -2px 0px 0px rgba(0,0,0,0.35),
+        inset 2px 2px 0px 0px rgba(255,255,255,0.28),
+        3px 3px 0px 0px var(--shadow-pixel);
+      transition: transform 0.08s ease, box-shadow 0.08s ease, filter 0.12s ease;
+      cursor: pointer;
+      user-select: none;
+      font-weight: 700;
+    }
+
+    .pixel-btn:hover {
+      filter: brightness(1.08);
+    }
+
+    .pixel-btn:active {
+      transform: translate(2px, 2px);
+      box-shadow:
+        inset -2px -2px 0px 0px rgba(0,0,0,0.35),
+        1px 1px 0px 0px var(--shadow-pixel);
+    }
+
+    .pixel-btn-primary {
+      background-color: var(--accent-primary);
+      color: #ffffff;
+    }
+
+    .pixel-btn-secondary {
+      background-color: var(--accent-secondary);
+      color: #091812;
+    }
+
+    .pixel-btn-gold {
+      background-color: var(--accent-gold);
+      color: #231900;
+    }
+
+    .pixel-btn-neutral {
+      background-color: var(--bg-card);
+      color: var(--text-main);
+    }
+
+    /* Tag Pill */
+    .tag-btn {
+      background-color: var(--bg-card);
+      color: var(--text-main);
+      border: 2px solid var(--border-outer);
+      box-shadow: 2px 2px 0px 0px var(--shadow-pixel);
+      transition: all 0.1s ease;
+      cursor: pointer;
+    }
+
+    .tag-btn:hover {
+      border-color: var(--accent-gold);
+      transform: translateY(-1px);
+    }
+
+    .tag-btn.active {
+      background-color: var(--accent-secondary);
+      color: #081c14;
+      border-color: var(--border-outer);
+      box-shadow:
+        inset -2px -2px 0px 0px rgba(0,0,0,0.25),
+        2px 2px 0px 0px var(--shadow-pixel);
+      font-weight: 700;
+    }
+
+    .tag-btn.active-negative {
+      background-color: #ef476f;
+      color: #ffffff;
+      border-color: var(--border-outer);
+      font-weight: 700;
+    }
+
+    /* Category Tab */
+    .cat-tab {
+      background-color: var(--bg-card);
+      color: var(--text-muted);
+      border: 2px solid var(--border-outer);
+      transition: all 0.12s ease;
+      cursor: pointer;
+    }
+
+    .cat-tab.active {
+      background-color: var(--accent-primary);
+      color: #ffffff;
+      box-shadow: 2px 2px 0px 0px var(--shadow-pixel);
+      transform: translateY(-2px);
+    }
+
+    /* Anvil Strike Animation */
+    @keyframes anvilPulse {
+      0%, 100% { transform: scale(1); }
+      40% { transform: scale(1.06) rotate(-2deg); }
+      75% { transform: scale(0.97) rotate(1deg); }
+    }
+
+    .animate-forge {
+      animation: anvilPulse 0.35s ease-in-out;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-input);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-inner);
+      border: 1px solid var(--border-outer);
+    }
+  </style>
+</head>
+<body class="pb-12">
+
+  <!-- Top RPG HUD Header -->
+  <header class="sticky top-0 z-30 border-b-4 border-[var(--border-outer)] bg-[var(--bg-panel)] px-3 py-2.5 shadow-md">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      <!-- Brand Title -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 pixel-card flex items-center justify-center text-xl bg-[var(--accent-primary)] text-white shrink-0" title="像素鍛造爐">
+          ⚒️
+        </div>
+        <div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <h1 class="font-pixel-en text-xs sm:text-sm tracking-wider text-[var(--accent-gold)]">
+              PIXEL PROMPT FORGE
+            </h1>
+            <span class="text-xs px-1.5 py-0.5 bg-[var(--accent-purple)] text-white font-bold border border-black">
+              v2.0
+            </span>
+          </div>
+          <p class="text-xs sm:text-sm text-[var(--text-muted)]">
+            8-Bit 像素風 AI 繪圖靈感鍛造屋｜文字與圖像生成實務
+          </p>
+        </div>
+      </div>
+
+      <!-- RPG Forgemaster Status & Controls -->
+      <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+        <!-- RPG Level & EXP Bar -->
+        <div class="pixel-card px-2.5 py-1 flex items-center gap-2 text-xs">
+          <span class="font-bold text-[var(--accent-gold)]" id="rpgLevelBadge">LV.1 見習鐵匠</span>
+          <div class="w-20 sm:w-24 h-3 bg-[var(--bg-input)] border border-[var(--border-outer)] overflow-hidden">
+            <div id="rpgExpBar" class="h-full bg-[var(--accent-secondary)] transition-all duration-300" style="width: 20%;"></div>
+          </div>
+          <span id="forgeCountText" class="text-[var(--text-muted)] hidden sm:inline">鍛造: 0</span>
+        </div>
+
+        <!-- SFX Toggle Button -->
+        <button id="sfxToggleBtn" type="button" class="pixel-btn pixel-btn-neutral px-2.5 py-1.5 text-xs" title="切換 8-Bit 音效">
+          <span id="sfxIcon">🔊</span>
+          <span id="sfxLabel" class="hidden sm:inline">8-Bit 音效: 開</span>
+        </button>
+
+        <!-- Theme Toggle Button (Dark / Light) -->
+        <button id="themeToggleBtn" type="button" class="pixel-btn pixel-btn-gold px-3 py-1.5 text-xs" title="切換深淺色像素主題">
+          <span id="themeIcon">☀️</span>
+          <span id="themeLabel">切換晨光模式</span>
+        </button>
+
+        <!-- Spec Modal Button -->
+        <button id="openSpecModalBtn" type="button" class="pixel-btn pixel-btn-primary px-3 py-1.5 text-xs">
+          📜 規格書
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace Container -->
+  <main class="max-w-7xl mx-auto px-3 sm:px-6 pt-5 space-y-6">
+
+    <!-- Quick Action Banner: Presets & Random Gacha Slot -->
+    <section class="pixel-box p-4">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-base sm:text-lg font-bold flex items-center gap-2">
+            <span>🎰 靈感扭蛋機 & 大師配方捲軸</span>
+            <span class="text-xs font-normal px-2 py-0.5 pixel-card text-[var(--accent-secondary)]">
+              一鍵套用或隨機抽卡
+            </span>
+          </h2>
+          <p class="text-xs sm:text-sm text-[var(--text-muted)] mt-0.5">
+            不知道怎麼下 Prompt？點選下方「大師預設配方」快速體驗，或轉動「8-Bit 靈感扭蛋」隨機鍛造驚喜組合！
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="gachaSpinBtn" type="button" class="pixel-btn pixel-btn-primary px-3.5 py-2 text-xs sm:text-sm">
+            🎲 隨機靈感扭蛋 (Gacha!)
+          </button>
+          <button id="clearAllBtn" type="button" class="pixel-btn pixel-btn-neutral px-3 py-2 text-xs sm:text-sm">
+            🧹 清空鐵砧
+          </button>
+        </div>
+      </div>
+
+      <!-- Preset Recipe Scrolls -->
+      <div class="mt-3 pt-3 border-t-2 border-dashed border-[var(--border-inner)] flex items-center gap-2 overflow-x-auto pb-1" id="presetContainer">
+        <!-- Populated by JS -->
+      </div>
+    </section>
+
+    <!-- Primary 12-Column Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+      <!-- Left Column (7 cols): Tag Selection Matrix & Weight Anvil -->
+      <div class="lg:col-span-7 space-y-6">
+
+        <!-- Step 1: 6-Dimension Prompt Tag Matrix -->
+        <section class="pixel-box p-4 sm:p-5">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <h2 class="text-base sm:text-lg font-bold flex items-center gap-2">
+              <span>🧪 STEP 1｜選擇靈感詞綴晶石 (Tag Matrix)</span>
+            </h2>
+            <span id="selectedCountBadge" class="text-xs px-2.5 py-1 pixel-card text-[var(--accent-gold)] font-bold">
+              已裝備 0 個詞綴
+            </span>
+          </div>
+
+          <!-- Category Tabs -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 mb-4" id="categoryTabs">
+            <!-- Populated by JS -->
+          </div>
+
+          <!-- Active Category Description & Custom Tag Adder -->
+          <div class="pixel-card p-3 mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div class="text-xs sm:text-sm" id="categoryHint">
+              選擇畫面中的核心主角或場景主體。
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <input
+                id="customTagZhInput"
+                type="text"
+                placeholder="中文名稱 (如: 像素貓)"
+                class="pixel-input px-2 py-1 text-xs w-28 sm:w-32"
+              />
+              <input
+                id="customTagEnInput"
+                type="text"
+                placeholder="英文 (如: pixel cat)"
+                class="pixel-input px-2 py-1 text-xs w-32 sm:w-36"
+              />
+              <button id="addCustomTagBtn" type="button" class="pixel-btn pixel-btn-secondary px-2.5 py-1 text-xs">
+                ＋新增
+              </button>
+            </div>
+          </div>
+
+          <!-- Tag Grid -->
+          <div id="tagGrid" class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-80 overflow-y-auto pr-1">
+            <!-- Populated by JS -->
+          </div>
+        </section>
+
+        <!-- Step 2: Forging Anvil (Weight Tuning & AI Model Parameters) -->
+        <section id="forgeAnvilSection" class="pixel-box p-4 sm:p-5">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <h2 class="text-base sm:text-lg font-bold flex items-center gap-2">
+              <span>🔨 STEP 2｜鍛造鐵砧：權重微調與模型參數</span>
+            </h2>
+            <span class="text-xs text-[var(--text-muted)]">
+              可調整詞綴權重 (0.6x ~ 1.6x) 控制 AI 強調程度
+            </span>
+          </div>
+
+          <!-- Equipped Positive & Negative Tags List with Weight Controls -->
+          <div id="equippedTagsContainer" class="pixel-card p-3 min-h-[110px] max-h-60 overflow-y-auto space-y-2 mb-4">
+            <!-- Populated by JS -->
+          </div>
+
+          <!-- Model Target & Generation Parameters -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t-2 border-dashed border-[var(--border-inner)]">
+            <!-- Target AI Generator Format -->
+            <div class="pixel-card p-3">
+              <label for="modelFormatSelect" class="block text-xs text-[var(--text-muted)] mb-1.5 font-bold">
+                🤖 目標生圖模型語法
+              </label>
+              <select id="modelFormatSelect" class="pixel-input w-full px-2.5 py-1.5 text-xs sm:text-sm">
+                <option value="mj">Midjourney v6.1 (--ar --s)</option>
+                <option value="sd">Stable Diffusion (括號權重)</option>
+                <option value="natural">通用自然語言 (DALL·E / Gemini)</option>
+              </select>
+            </div>
+
+            <!-- Aspect Ratio Selector -->
+            <div class="pixel-card p-3">
+              <label class="block text-xs text-[var(--text-muted)] mb-1.5 font-bold">
+                📐 畫布比例 (Aspect Ratio)
+              </label>
+              <div class="grid grid-cols-3 gap-1.5" id="aspectRatioGroup">
+                <button type="button" data-ar="1:1" class="ar-btn pixel-btn pixel-btn-secondary py-1 text-xs">1:1 方圖</button>
+                <button type="button" data-ar="16:9" class="ar-btn pixel-btn pixel-btn-neutral py-1 text-xs">16:9 橫幅</button>
+                <button type="button" data-ar="9:16" class="ar-btn pixel-btn pixel-btn-neutral py-1 text-xs">9:16 直式</button>
+              </div>
+            </div>
+
+            <!-- Stylize / Creativity Slider -->
+            <div class="pixel-card p-3">
+              <div class="flex items-center justify-between text-xs mb-1.5">
+                <label for="stylizeRange" class="text-[var(--text-muted)] font-bold">✨ 風格化強度 (Stylize)</label>
+                <span id="stylizeValueText" class="font-bold text-[var(--accent-gold)]">250</span>
+              </div>
+              <input
+                id="stylizeRange"
+                type="range"
+                min="50"
+                max="1000"
+                step="50"
+                value="250"
+                class="w-full accent-[var(--accent-primary)] cursor-pointer"
+              />
+              <div class="flex justify-between text-[10px] text-[var(--text-muted)] mt-0.5">
+                <span>寫實嚴謹 (50)</span>
+                <span>狂野藝術 (1000)</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+      <!-- Right Column (5 cols): Live 8-Bit Visualizer & Prompt Output Terminal -->
+      <div class="lg:col-span-5 space-y-6">
+
+        <!-- Step 3: Live 8-Bit Procedural Scene Preview -->
+        <section class="pixel-box p-4 sm:p-5">
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <div>
+              <h2 class="text-base sm:text-lg font-bold flex items-center gap-2">
+                <span>👾 STEP 3｜8-Bit 像素意境即時預覽</span>
+              </h2>
+              <p class="text-xs text-[var(--text-muted)]">
+                根據你選的主體、色調與光影，即時渲染像素概念分鏡
+              </p>
+            </div>
+            <button id="downloadCardBtn" type="button" class="pixel-btn pixel-btn-gold px-2.5 py-1.5 text-xs shrink-0">
+              📸 下載配方卡
+            </button>
+          </div>
+
+          <!-- Canvas Container -->
+          <div class="pixel-card p-2 flex flex-col items-center justify-center bg-[#0b0914] relative">
+            <canvas
+              id="pixelPreviewCanvas"
+              width="360"
+              height="240"
+              class="w-full max-w-[380px] h-auto border-2 border-black"
+            ></canvas>
+            <div class="w-full flex items-center justify-between text-[11px] text-[var(--text-muted)] mt-2 px-1">
+              <span id="canvasSceneLabel">場景：賽博龐克街頭｜霓虹暗夜</span>
+              <button id="rerenderSeedBtn" type="button" class="underline hover:text-[var(--accent-gold)]">
+                🔄 變換像素構圖種子
+              </button>
+            </div>
+          </div>
+
+          <!-- Prompt Composition Radar / Attribute Bars -->
+          <div class="pixel-card p-3 mt-3 space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-[var(--accent-gold)]">📊 提示詞完整度診斷 (Prompt Completeness)</span>
+              <span id="promptScoreBadge" class="font-bold text-[var(--accent-secondary)]">92 / 100 分 (S級)</span>
+            </div>
+            <div class="w-full h-3 bg-[var(--bg-input)] border border-[var(--border-outer)]">
+              <div id="promptScoreBar" class="h-full bg-[var(--accent-secondary)] transition-all duration-300" style="width: 92%;"></div>
+            </div>
+            <p id="promptAdviceText" class="text-xs text-[var(--text-muted)]">
+              💡 診斷建議：主體、風格、光影與構圖非常齊全！可直接複製生圖。
+            </p>
+          </div>
+        </section>
+
+        <!-- Step 4: Bilingual Prompt Output & Copy / Save Terminal -->
+        <section class="pixel-box p-4 sm:p-5">
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <h2 class="text-base sm:text-lg font-bold">
+              📜 STEP 4｜鍛造結果：AI 生圖提示詞終端機
+            </h2>
+            <div class="flex items-center gap-2">
+              <button id="copyEnPromptBtn" type="button" class="pixel-btn pixel-btn-secondary px-3 py-1.5 text-xs">
+                📋 複製英文 Prompt
+              </button>
+              <button id="saveToVaultBtn" type="button" class="pixel-btn pixel-btn-primary px-3 py-1.5 text-xs">
+                💾 存入寶箱
+              </button>
+            </div>
+          </div>
+
+          <!-- English Prompt Box -->
+          <div class="space-y-3">
+            <div>
+              <div class="flex items-center justify-between text-xs mb-1">
+                <label for="enPromptOutput" class="font-bold text-[var(--accent-secondary)]">
+                  🇬🇧 英文生圖 Prompt（推薦直接貼入生圖工具，可手動微調）
+                </label>
+                <span id="tokenCountText" class="text-[var(--text-muted)]">0 詞</span>
+              </div>
+              <textarea
+                id="enPromptOutput"
+                rows="4"
+                class="pixel-input w-full p-2.5 text-xs sm:text-sm font-mono leading-relaxed"
+              ></textarea>
+            </div>
+
+            <!-- Traditional Chinese Semantic Translation -->
+            <div>
+              <div class="flex items-center justify-between text-xs mb-1">
+                <label for="zhPromptOutput" class="font-bold text-[var(--accent-gold)]">
+                  🇹🇼 中文語意解析（適合中文模型或檢視結構）
+                </label>
+                <button id="copyZhPromptBtn" type="button" class="text-xs underline hover:text-[var(--accent-gold)]">
+                  複製中文版
+                </button>
+              </div>
+              <textarea
+                id="zhPromptOutput"
+                rows="2"
+                readonly
+                class="pixel-input w-full p-2.5 text-xs sm:text-sm leading-relaxed opacity-95"
+              ></textarea>
+            </div>
+
+            <!-- Negative Prompt Box -->
+            <div>
+              <div class="flex items-center justify-between text-xs mb-1">
+                <label for="negPromptOutput" class="font-bold text-[#ef476f]">
+                  🚫 負面排除詞 (Negative Prompt)
+                </label>
+                <button id="copyNegPromptBtn" type="button" class="text-xs underline hover:text-[#ef476f]">
+                  複製負面詞
+                </button>
+              </div>
+              <input
+                id="negPromptOutput"
+                type="text"
+                readonly
+                class="pixel-input w-full px-2.5 py-1.5 text-xs font-mono text-[var(--text-muted)]"
+              />
+            </div>
+          </div>
+        </section>
+
+      </div>
+
+    </div>
+
+    <!-- Bottom Section: LocalStorage Treasure Vault (Saved Prompts) -->
+    <section class="pixel-box p-4 sm:p-5">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        <div>
+          <h2 class="text-base sm:text-lg font-bold flex items-center gap-2">
+            <span>🧰 靈感寶箱收藏夾 (LocalStorage Vault)</span>
+            <span id="vaultCountBadge" class="text-xs px-2 py-0.5 pixel-card text-[var(--accent-gold)]">
+              0 筆收藏
+            </span>
+          </h2>
+          <p class="text-xs text-[var(--text-muted)]">
+            儲存在瀏覽器本地端，重新整理網頁也不會消失；支援關鍵字篩選、一鍵回填鐵砧與 JSON 備份匯出。
+          </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <input
+            id="vaultSearchInput"
+            type="text"
+            placeholder="🔍 搜尋收藏的配方..."
+            class="pixel-input px-2.5 py-1.5 text-xs w-44 sm:w-52"
+          />
+          <button id="exportVaultBtn" type="button" class="pixel-btn pixel-btn-neutral px-3 py-1.5 text-xs">
+            ⬇️ 匯出 JSON
+          </button>
+        </div>
+      </div>
+
+      <div id="vaultListContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <!-- Populated by JS -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Specification Document Modal (For Homework Reference) -->
+  <div id="specModal" class="fixed inset-0 z-50 bg-black/75 hidden items-center justify-center p-4">
+    <div class="pixel-box max-w-3xl w-full max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between px-4 py-3 border-b-2 border-[var(--border-outer)] bg-[var(--bg-card)]">
+        <h3 class="font-bold text-sm sm:text-base flex items-center gap-2 text-[var(--accent-gold)]">
+          <span>📜 專案規格書｜PIXEL PROMPT FORGE (8-Bit AI 繪圖靈感鍛造屋)</span>
+        </h3>
+        <button id="closeSpecModalBtn" type="button" class="pixel-btn pixel-btn-neutral px-2.5 py-1 text-xs">
+          ✕ 關閉
+        </button>
+      </div>
+      <div class="p-4 sm:p-6 overflow-y-auto space-y-4 text-xs sm:text-sm leading-relaxed">
+        <div class="pixel-card p-3">
+          <h4 class="font-bold text-[var(--accent-secondary)] mb-1">一、專案背景與發想動機</h4>
+          <p>
+            配合「文字與圖像生成的原理與實務」課程，許多初學者在接觸 Midjourney、Stable Diffusion 或 Gemini 生圖時，常遇到「腦中有畫面卻不知如何轉化為精準英文 Prompt」或「漏掉光影、鏡頭與構圖詞綴」的困境。因此設計這款結合<strong>復古 8-Bit 像素鐵匠鋪 RPG 元素</strong>的互動式 Prompt 鍛造工具，讓組合生圖提示詞就像在遊戲中鑲嵌魔法晶石一樣直覺有趣。
+          </p>
+        </div>
+        <div class="pixel-card p-3">
+          <h4 class="font-bold text-[var(--accent-secondary)] mb-1">二、視覺風格與介面設計</h4>
+          <ul class="list-disc pl-5 space-y-1">
+            <li><strong>復古 8-Bit 像素美學</strong>：採用像素字體（Press Start 2P / DotGothic16）、階梯式像素邊框陰影、CRT 掃描線濾鏡與 RPG 等級經驗值狀態列。</li>
+            <li><strong>深淺色模式一鍵切換</strong>：支援「🌙 暗黑地下城模式（深紫黑配霓虹綠）」與「☀️ 晨光羊皮紙模式（復古米白配磚紅）」，並自動記憶使用者偏好。</li>
+            <li><strong>8-Bit 原生合成音效</strong>：利用 Web Audio API 即時合成復古方波音效（點擊、轉蛋、打鐵、升級），無須外部音檔即可運作，並附帶靜音開關。</li>
+          </ul>
+        </div>
+        <div class="pixel-card p-3">
+          <h4 class="font-bold text-[var(--accent-secondary)] mb-1">三、核心互動功能規格</h4>
+          <ul class="list-disc pl-5 space-y-1">
+            <li><strong>六大維度詞綴矩陣</strong>：涵蓋主體角色、藝術畫風、光影天氣、鏡頭視角、色彩氛圍、負面排除詞，並支援使用者自訂新增中英詞綴。</li>
+            <li><strong>鍛造鐵砧與權重調整</strong>：可針對單一詞綴調整 0.6x～1.6x 權重，並切換 Midjourney (`--ar`、`--s`)、Stable Diffusion `(tag:weight)` 與通用自然語言三種模型語法。</li>
+            <li><strong>隨機靈感扭蛋與大師配方</strong>：提供一鍵隨機抽取各維度詞綴的拉霸功能，以及 5 組經典主題預設配方。</li>
+            <li><strong>即時 8-Bit 像素意境預覽畫布</strong>：以 HTML5 Canvas 根據所選詞綴即時繪製對應的像素風景與動態粒子，並支援合成下載「PNG 靈感配方小卡」。</li>
+            <li><strong>完整度診斷與寶箱收藏夾</strong>：自動計算 Prompt 結構完整度評分，並可將喜愛的配方存入 `localStorage` 本地寶箱、搜尋回填或匯出 JSON。</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pixel Toast Notification -->
+  <div
+    id="pixelToast"
+    class="fixed bottom-5 right-5 z-50 pixel-box px-4 py-2.5 text-xs sm:text-sm font-bold hidden items-center gap-2 bg-[var(--accent-secondary)] text-[#071a12]"
+  >
+    <span id="toastIcon">✨</span>
+    <span id="toastMessage">操作成功！</span>
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. 8-Bit Web Audio API Synthesizer
+    // ==========================================
+    const RetroSFX = {
+      ctx: null,
+      enabled: true,
+      init() {
+        if (!this.ctx) {
+          const AudioCtx = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtx) this.ctx = new AudioCtx();
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      },
+      playTone(freq, duration = 0.08, type = 'square', slideFreq = null) {
+        if (!this.enabled) return;
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = type;
+          const now = this.ctx.currentTime;
+          osc.frequency.setValueAtTime(freq, now);
+          if (slideFreq) {
+            osc.frequency.exponentialRampToValueAtTime(slideFreq, now + duration);
+          }
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now);
+          osc.stop(now + duration);
+        } catch (e) {
+          // Ignore audio context restriction errors
+        }
+      },
+      click() {
+        this.playTone(580, 0.05, 'square', 780);
+      },
+      remove() {
+        this.playTone(420, 0.06, 'sawtooth', 220);
+      },
+      forge() {
+        this.playTone(330, 0.07, 'square', 660);
+        setTimeout(() => this.playTone(660, 0.1, 'square', 990), 75);
+      },
+      gacha() {
+        const notes = [392, 493, 587, 784, 987];
+        notes.forEach((n, idx) => {
+          setTimeout(() => this.playTone(n, 0.06, 'square'), idx * 55);
+        });
+      }
+    };
+
+    // ==========================================
+    // 2. Prompt Tag Database (6 Categories)
+    // ==========================================
+    const CATEGORIES = [
+      { id: 'subject', name: '🧙 主體角色', desc: '決定畫面中的核心主角、生物或場景建築。' },
+      { id: 'style', name: '🎨 藝術畫風', desc: '設定作品的繪畫媒材、時代美學或渲染風格。' },
+      { id: 'lighting', name: '⚡ 光影天氣', desc: '營造時間感、大氣光線、粒子特效與天氣氛圍。' },
+      { id: 'camera', name: '📷 鏡頭構圖', desc: '控制攝影機視角、景深、焦段與畫面構圖比例。' },
+      { id: 'palette', name: '🌈 色彩氛圍', desc: '指定整體配色的冷暖調、對比度與復古色盤。' },
+      { id: 'negative', name: '🚫 負面排除', desc: '告訴 AI 不要在畫面中出現的瑕疵或干擾元素。' }
+    ];
+
+    const INITIAL_TAGS = [
+      // Subject
+      { id: 'sub_cyber_street', cat: 'subject', zh: '賽博龐克霓虹街區', en: 'cyberpunk neon street market', icon: '🏙️', sceneType: 'city' },
+      { id: 'sub_float_island', cat: 'subject', zh: '浮空魔法水晶島', en: 'floating magical crystal island in the sky', icon: '🏝️', sceneType: 'island' },
+      { id: 'sub_pixel_alchemist', cat: 'subject', zh: '鍊金術士與黑貓工坊', en: 'alchemist workshop with a glowing black cat', icon: '🐈‍⬛', sceneType: 'forest' },
+      { id: 'sub_mecha_girl', cat: 'subject', zh: '復古未來機甲飛行員', en: 'retro-futuristic mecha pilot in cockpit', icon: '🤖', sceneType: 'mecha' },
+      { id: 'sub_shrine_forest', cat: 'subject', zh: '迷霧森林古老神社', en: 'ancient torii shrine in mystical foggy forest', icon: '⛩️', sceneType: 'forest' },
+      { id: 'sub_space_diner', cat: 'subject', zh: '銀河軌道復古咖啡館', en: 'intergalactic retro diner floating in space', icon: '☕', sceneType: 'city' },
+      { id: 'sub_dragon_citadel', cat: 'subject', zh: '雲端巨龍與天空古堡', en: 'majestic dragon perched on a sky citadel', icon: '🐉', sceneType: 'island' },
+      { id: 'sub_ocean_train', cat: 'subject', zh: '行駛於海面上的星空列車', en: 'fantasy train running on shallow starry ocean water', icon: '🚆', sceneType: 'island' },
+
+      // Style
+      { id: 'sty_16bit', cat: 'style', zh: '16-Bit 精緻像素藝術', en: '16-bit pixel art masterpiece, intricate sprite details', icon: '👾' },
+      { id: 'sty_ghibli', cat: 'style', zh: '吉卜力手繪水彩動畫風', en: 'Studio Ghibli inspired hand-painted anime background', icon: '🖌️' },
+      { id: 'sty_vaporwave', cat: 'style', zh: '90年代復古蒸氣波美學', en: '90s retro anime aesthetic, vaporwave synthwave style', icon: '📼' },
+      { id: 'sty_isometric', cat: 'style', zh: '等距視角微縮模型風', en: 'isometric 3D diorama cutaway, Octane render', icon: '🧊' },
+      { id: 'sty_oil', cat: 'style', zh: '厚塗奇幻概念藝術', en: 'epic fantasy digital concept art, painterly brushstrokes', icon: '🖼️' },
+      { id: 'sty_ukiyoe', cat: 'style', zh: '浮世繪木刻版畫融合風', en: 'modern ukiyo-e woodblock print illustration style', icon: '🌊' },
+      { id: 'sty_cel', cat: 'style', zh: '賽璐珞高對比漫畫渲染', en: 'stylized cel-shaded illustration, crisp ink lines', icon: '✒️' },
+
+      // Lighting & Weather
+      { id: 'lit_neon_rain', cat: 'lighting', zh: '霓虹雨夜與濕地倒影', en: 'neon rain at night, wet pavement reflections', icon: '🌧️', weather: 'rain', time: 'night' },
+      { id: 'lit_golden_hour', cat: 'lighting', zh: '魔幻夕陽黃金時刻', en: 'warm golden hour sunset, volumetric god rays', icon: '🌅', weather: 'clear', time: 'sunset' },
+      { id: 'lit_fireflies', cat: 'lighting', zh: '星夜與發光魔法螢火蟲', en: 'starry night sky, bioluminescent floating fireflies', icon: '✨', weather: 'fireflies', time: 'night' },
+      { id: 'lit_cinematic', cat: 'lighting', zh: '電影感戲劇化輪廓光', en: 'cinematic dramatic rim lighting, soft ambient occlusion', icon: '🎬', weather: 'clear', time: 'night' },
+      { id: 'lit_morning_mist', cat: 'lighting', zh: '清晨薄霧與柔和漫射光', en: 'ethereal morning mist, soft diffused sunlight', icon: '🌫️', weather: 'clear', time: 'day' },
+      { id: 'lit_aurora', cat: 'lighting', zh: '極光天幕與炫彩星雲', en: 'shimmering aurora borealis sky, cosmic nebula glow', icon: '🌌', weather: 'fireflies', time: 'night' },
+
+      // Camera & Angle
+      { id: 'cam_wide', cat: 'camera', zh: '廣角史詩大遠景', en: 'ultra-wide angle establishing shot, panoramic view', icon: '🔭' },
+      { id: 'cam_low', cat: 'camera', zh: '仰角英雄威嚴視角', en: 'dynamic low angle shot looking up', icon: '📐' },
+      { id: 'cam_dof', cat: 'camera', zh: '淺景深與唯美散景', en: 'shallow depth of field, 50mm lens, creamy bokeh', icon: '🎯' },
+      { id: 'cam_bird', cat: 'camera', zh: '鳥瞰俯視全景構圖', en: 'birds-eye view, high angle overview composition', icon: '🦅' },
+      { id: 'cam_sym', cat: 'camera', zh: '置中對稱黃金構圖', en: 'symmetrical centered composition, rule of thirds', icon: '⚖️' },
+      { id: 'cam_closeup', cat: 'camera', zh: '特寫鏡頭與細膩眼神光', en: 'expressive medium close-up portrait, sharp focus', icon: '🔍' },
+
+      // Color Palette
+      { id: 'pal_cyber', cat: 'palette', zh: '霓虹紫青高對比色盤', en: 'vibrant magenta and cyan neon color palette', icon: '🔮', paletteKey: 'cyber' },
+      { id: 'pal_pastel', cat: 'palette', zh: '溫柔馬卡龍粉彩色調', en: 'dreamy pastel color palette, soft warm tones', icon: '🍬', paletteKey: 'pastel' },
+      { id: 'pal_gameboy', cat: 'palette', zh: '復古掌機翡翠綠階色盤', en: 'retro 4-tone emerald green pixel palette', icon: '📟', paletteKey: 'emerald' },
+      { id: 'pal_sunset', cat: 'palette', zh: '琥珀暮光與深藍撞色', en: 'teal and orange complementary color grading', icon: '🌇', paletteKey: 'sunset' },
+      { id: 'pal_gold_dark', cat: 'palette', zh: '黑金奢華奇幻色調', en: 'obsidian black and luminous gold palette', icon: '👑', paletteKey: 'gold' },
+
+      // Negative Prompts
+      { id: 'neg_blurry', cat: 'negative', zh: '模糊與低畫質失真', en: 'blurry, low quality, pixelated jpeg artifacts', icon: '🚫' },
+      { id: 'neg_watermark', cat: 'negative', zh: '浮水印、簽名與多餘文字', en: 'watermark, signature, text, logo, username', icon: '🚫' },
+      { id: 'neg_anatomy', cat: 'negative', zh: '崩壞肢體與多餘手指', en: 'bad anatomy, extra fingers, mutated hands, deformed', icon: '🚫' },
+      { id: 'neg_overexposed', cat: 'negative', zh: '過曝或色彩灰暗平淡', en: 'overexposed, washed out colors, dull flat lighting', icon: '🚫' }
+    ];
+
+    const PRESET_RECIPES = [
+      {
+        name: '🌃 賽博龐克雨夜街市',
+        ar: '16:9',
+        stylize: 350,
+        model: 'mj',
+        tags: ['sub_cyber_street', 'sty_16bit', 'lit_neon_rain', 'cam_wide', 'pal_cyber', 'neg_blurry', 'neg_watermark']
+      },
+      {
+        name: '🏝️ 浮空水晶魔法島',
+        ar: '16:9',
+        stylize: 450,
+        model: 'mj',
+        tags: ['sub_float_island', 'sty_ghibli', 'lit_golden_hour', 'cam_bird', 'pal_sunset', 'neg_blurry', 'neg_watermark']
+      },
+      {
+        name: '🐈‍⬛ 鍊金術士與黑貓工坊',
+        ar: '1:1',
+        stylize: 250,
+        model: 'sd',
+        tags: ['sub_pixel_alchemist', 'sty_isometric', 'lit_fireflies', 'cam_sym', 'pal_gold_dark', 'neg_blurry', 'neg_anatomy']
+      },
+      {
+        name: '🤖 復古蒸氣波機甲少女',
+        ar: '9:16',
+        stylize: 300,
+        model: 'natural',
+        tags: ['sub_mecha_girl', 'sty_vaporwave', 'lit_cinematic', 'cam_low', 'pal_cyber', 'neg_anatomy', 'neg_watermark']
+      },
+      {
+        name: '🚆 星海奇幻水上列車',
+        ar: '16:9',
+        stylize: 500,
+        model: 'mj',
+        tags: ['sub_ocean_train', 'sty_16bit', 'lit_aurora', 'cam_wide', 'pal_pastel', 'neg_blurry']
+      }
+    ];
+
+    // ==========================================
+    // 3. Application State
+    // ==========================================
+    const state = {
+      theme: 'dark',
+      activeCategory: 'subject',
+      tags: [...INITIAL_TAGS],
+      // equipped stores { [tagId]: weight }
+      equipped: {
+        sub_cyber_street: 1.2,
+        sty_16bit: 1.1,
+        lit_neon_rain: 1.0,
+        cam_wide: 1.0,
+        pal_cyber: 1.0,
+        neg_blurry: 1.0,
+        neg_watermark: 1.0
+      },
+      modelFormat: 'mj',
+      aspectRatio: '16:9',
+      stylize: 350,
+      forgeCount: 3,
+      canvasSeed: 42,
+      vault: []
+    };
+
+    // ==========================================
+    // 4. Safe LocalStorage Helpers
+    // ==========================================
+    const STORAGE_KEY = 'pixel_prompt_forge_v2';
+
+    function loadFromStorage() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          seedDefaultVault();
+          return;
+        }
+        const parsed = JSON.parse(raw);
+        if (parsed.theme) state.theme = parsed.theme;
+        if (typeof parsed.forgeCount === 'number') state.forgeCount = parsed.forgeCount;
+        if (Array.isArray(parsed.customTags)) {
+          parsed.customTags.forEach(ct => {
+            if (!state.tags.some(t => t.id === ct.id)) state.tags.push(ct);
+          });
+        }
+        if (Array.isArray(parsed.vault) && parsed.vault.length > 0) {
+          state.vault = parsed.vault;
+        } else {
+          seedDefaultVault();
+        }
+      } catch (e) {
+        seedDefaultVault();
+      }
+    }
+
+    function seedDefaultVault() {
+      state.vault = [
+        {
+          id: 'vault_demo_1',
+          title: '賽博龐克霓虹街區 × 16-Bit 像素藝術',
+          enPrompt: '(cyberpunk neon street market:1.2), (16-bit pixel art masterpiece, intricate sprite details:1.1), neon rain at night, wet pavement reflections, ultra-wide angle establishing shot, panoramic view, vibrant magenta and cyan neon color palette, highly detailed, sharp focus --ar 16:9 --s 350 --v 6.1',
+          zhPrompt: '主體：賽博龐克霓虹街區(1.2x)｜畫風：16-Bit 精緻像素藝術(1.1x)｜光影：霓虹雨夜與濕地倒影｜鏡頭：廣角史詩大遠景｜色彩：霓虹紫青高對比色盤',
+          negPrompt: 'blurry, low quality, pixelated jpeg artifacts, watermark, signature, text, logo, username',
+          equipped: {
+            sub_cyber_street: 1.2,
+            sty_16bit: 1.1,
+            lit_neon_rain: 1.0,
+            cam_wide: 1.0,
+            pal_cyber: 1.0,
+            neg_blurry: 1.0,
+            neg_watermark: 1.0
+          },
+          ar: '16:9',
+          stylize: 350,
+          modelFormat: 'mj',
+          createdAt: '2026-10-19 14:00'
+        },
+        {
+          id: 'vault_demo_2',
+          title: '浮空魔法水晶島 × 吉卜力水彩動畫',
+          enPrompt: 'floating magical crystal island in the sky, Studio Ghibli inspired hand-painted anime background, warm golden hour sunset, volumetric god rays, birds-eye view, high angle overview composition, teal and orange complementary color grading, masterpiece --ar 16:9 --s 450 --v 6.1',
+          zhPrompt: '主體：浮空魔法水晶島｜畫風：吉卜力手繪水彩動畫風｜光影：魔幻夕陽黃金時刻｜鏡頭：鳥瞰俯視全景構圖｜色彩：琥珀暮光與深藍撞色',
+          negPrompt: 'blurry, low quality, pixelated jpeg artifacts, watermark, signature, text, logo, username',
+          equipped: {
+            sub_float_island: 1.0,
+            sty_ghibli: 1.0,
+            lit_golden_hour: 1.0,
+            cam_bird: 1.0,
+            pal_sunset: 1.0,
+            neg_blurry: 1.0,
+            neg_watermark: 1.0
+          },
+          ar: '16:9',
+          stylize: 450,
+          modelFormat: 'mj',
+          createdAt: '2026-10-19 14:01'
+        }
+      ];
+    }
+
+    function saveToStorage() {
+      try {
+        const customTags = state.tags.filter(t => t.isCustom);
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            theme: state.theme,
+            forgeCount: state.forgeCount,
+            customTags,
+            vault: state.vault
+          })
+        );
+      } catch (e) {
+        // Ignore storage errors in sandboxed context
+      }
+    }
+
+    // ==========================================
+    // 5. UI Helpers & Toast
+    // ==========================================
+    let toastTimer = null;
+    function showToast(message, icon = '✨') {
+      const toast = document.getElementById('pixelToast');
+      document.getElementById('toastIcon').textContent = icon;
+      document.getElementById('toastMessage').textContent = message;
+      toast.classList.remove('hidden');
+      toast.classList.add('flex');
+      if (toastTimer) clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.add('hidden');
+        toast.classList.remove('flex');
+      }, 2400);
+    }
+
+    function copyTextToClipboard(text, successMsg) {
+      if (!text) {
+        showToast('目前沒有可複製的文字喔！', '⚠️');
+        return;
+      }
+      RetroSFX.click();
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast(successMsg, '📋');
+        }).catch(() => {
+          fallbackCopy(text, successMsg);
+        });
+      } else {
+        fallbackCopy(text, successMsg);
+      }
+    }
+
+    function fallbackCopy(text, successMsg) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      try {
+        document.execCommand('copy');
+        showToast(successMsg, '📋');
+      } catch (e) {
+        showToast('複製失敗，請手動選取文字複製', '⚠️');
+      }
+      document.body.removeChild(ta);
+    }
+
+    // ==========================================
+    // 6. Theme & RPG Status Bar Rendering
+    // ==========================================
+    function applyTheme() {
+      document.documentElement.setAttribute('data-theme', state.theme);
+      const iconEl = document.getElementById('themeIcon');
+      const labelEl = document.getElementById('themeLabel');
+      if (state.theme === 'dark') {
+        iconEl.textContent = '☀️';
+        labelEl.textContent = '切換晨光模式';
+      } else {
+        iconEl.textContent = '🌙';
+        labelEl.textContent = '切換暗黑模式';
+      }
+    }
+
+    function updateRPGStatus() {
+      const level = Math.floor(state.forgeCount / 3) + 1;
+      const titles = ['見習鐵匠', '像素學徒', '咒語工匠', '靈感鍛造師', '傳奇鍊金宗師'];
+      const title = titles[Math.min(level - 1, titles.length - 1)];
+      const expPercent = ((state.forgeCount % 3) / 3) * 100 || 25;
+      document.getElementById('rpgLevelBadge').textContent = `LV.${level} ${title}`;
+      document.getElementById('rpgExpBar').style.width = `${expPercent}%`;
+      document.getElementById('forgeCountText').textContent = `鍛造: ${state.forgeCount}`;
+    }
+
+    function triggerAnvilAnimation() {
+      const section = document.getElementById('forgeAnvilSection');
+      section.classList.remove('animate-forge');
+      void section.offsetWidth;
+      section.classList.add('animate-forge');
+    }
+
+    // ==========================================
+    // 7. Render Presets, Categories, Tag Grid & Anvil
+    // ==========================================
+    function renderPresets() {
+      const container = document.getElementById('presetContainer');
+      container.innerHTML = '';
+      PRESET_RECIPES.forEach((preset, idx) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'pixel-btn pixel-btn-neutral px-3 py-1.5 text-xs shrink-0';
+        btn.textContent = preset.name;
+        btn.addEventListener('click', () => {
+          RetroSFX.forge();
+          state.equipped = {};
+          preset.tags.forEach(tid => {
+            state.equipped[tid] = 1.0;
+          });
+          state.aspectRatio = preset.ar;
+          state.stylize = preset.stylize;
+          state.modelFormat = preset.model;
+          state.forgeCount += 1;
+          state.canvasSeed = Math.floor(Math.random() * 1000);
+          document.getElementById('modelFormatSelect').value = state.modelFormat;
+          document.getElementById('stylizeRange').value = state.stylize;
+          document.getElementById('stylizeValueText').textContent = state.stylize;
+          triggerAnvilAnimation();
+          saveToStorage();
+          renderAll();
+          showToast(`已載入大師配方：${preset.name}`, '🔥');
+        });
+        container.appendChild(btn);
+      });
+    }
+
+    function renderCategoryTabs() {
+      const container = document.getElementById('categoryTabs');
+      container.innerHTML = '';
+      CATEGORIES.forEach(cat => {
+        const countInCat = state.tags.filter(
+          t => t.cat === cat.id && state.equipped[t.id] !== undefined
+        ).length;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `cat-tab px-2.5 py-2 text-xs font-bold flex items-center justify-between gap-1 ${
+          state.activeCategory === cat.id ? 'active' : ''
+        }`;
+        btn.innerHTML = `
+          <span class="truncate">${cat.name}</span>
+          <span class="px-1.5 py-0.2 bg-black/30 text-[10px]">${countInCat}</span>
+        `;
+        btn.addEventListener('click', () => {
+          RetroSFX.click();
+          state.activeCategory = cat.id;
+          renderCategoryTabs();
+          renderTagGrid();
+        });
+        container.appendChild(btn);
+      });
+
+      const currentCatObj = CATEGORIES.find(c => c.id === state.activeCategory);
+      if (currentCatObj) {
+        document.getElementById('categoryHint').textContent = currentCatObj.desc;
+      }
+    }
+
+    function renderTagGrid() {
+      const grid = document.getElementById('tagGrid');
+      grid.innerHTML = '';
+      const filtered = state.tags.filter(t => t.cat === state.activeCategory);
+
+      filtered.forEach(tag => {
+        const isSelected = state.equipped[tag.id] !== undefined;
+        const isNegative = tag.cat === 'negative';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `tag-btn p-2.5 text-left flex flex-col justify-between gap-1 ${
+          isSelected ? (isNegative ? 'active-negative' : 'active') : ''
+        }`;
+        btn.innerHTML = `
+          <div class="flex items-center justify-between gap-1 w-full">
+            <span class="text-xs sm:text-sm font-bold truncate">${tag.icon || '✨'} ${tag.zh}</span>
+            <span class="text-[10px] px-1 border border-current opacity-80">${
+              isSelected ? `x${state.equipped[tag.id].toFixed(1)}` : '+'
+            }</span>
+          </div>
+          <div class="text-[10px] opacity-75 truncate font-mono w-full">${tag.en}</div>
+        `;
+        btn.addEventListener('click', () => {
+          if (state.equipped[tag.id] !== undefined) {
+            delete state.equipped[tag.id];
+            RetroSFX.remove();
+          } else {
+            state.equipped[tag.id] = 1.0;
+            state.forgeCount += 1;
+            RetroSFX.click();
+          }
+          saveToStorage();
+          renderAll();
+        });
+        grid.appendChild(btn);
+      });
+
+      const totalSelected = Object.keys(state.equipped).length;
+      document.getElementById('selectedCountBadge').textContent = `已裝備 ${totalSelected} 個詞綴`;
+    }
+
+    function renderEquippedAnvil() {
+      const container = document.getElementById('equippedTagsContainer');
+      container.innerHTML = '';
+      const equippedIds = Object.keys(state.equipped);
+
+      if (equippedIds.length === 0) {
+        container.innerHTML = `
+          <div class="h-24 flex flex-col items-center justify-center text-xs text-[var(--text-muted)] text-center">
+            <p>⚒️ 目前鍛造鐵砧是空的，請從上方點選詞綴晶石，或按下「🎲 隨機靈感扭蛋」！</p>
+          </div>
+        `;
+        return;
+      }
+
+      equippedIds.forEach(tid => {
+        const tag = state.tags.find(t => t.id === tid);
+        if (!tag) return;
+        const weight = state.equipped[tid];
+        const isNeg = tag.cat === 'negative';
+
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between gap-2 px-2.5 py-1.5 bg-[var(--bg-panel)] border border-[var(--border-outer)] text-xs';
+        row.innerHTML = `
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="px-1.5 py-0.5 text-[10px] font-bold ${
+              isNeg ? 'bg-[#ef476f] text-white' : 'bg-[var(--accent-secondary)] text-[#071a12]'
+            }">
+              ${isNeg ? '排除' : '正向'}
+            </span>
+            <span class="font-bold truncate">${tag.icon || '✨'} ${tag.zh}</span>
+            <span class="text-[var(--text-muted)] font-mono truncate hidden sm:inline">(${tag.en})</span>
+          </div>
+          <div class="flex items-center gap-1 shrink-0">
+            ${
+              !isNeg
+                ? `
+              <button type="button" data-action="dec" class="pixel-btn pixel-btn-neutral px-1.5 py-0.5 text-[10px]" title="降低權重">－</button>
+              <span class="w-10 text-center font-mono font-bold text-[var(--accent-gold)]">${weight.toFixed(1)}x</span>
+              <button type="button" data-action="inc" class="pixel-btn pixel-btn-neutral px-1.5 py-0.5 text-[10px]" title="提高權重">＋</button>
+            `
+                : `<span class="text-[10px] text-[var(--text-muted)] mr-1">負面詞</span>`
+            }
+            <button type="button" data-action="del" class="pixel-btn bg-[#ef476f] text-white px-1.5 py-0.5 text-[10px] ml-1" title="移除詞綴">✕</button>
+          </div>
+        `;
+
+        const decBtn = row.querySelector('[data-action="dec"]');
+        const incBtn = row.querySelector('[data-action="inc"]');
+        const delBtn = row.querySelector('[data-action="del"]');
+
+        if (decBtn) {
+          decBtn.addEventListener('click', () => {
+            RetroSFX.click();
+            state.equipped[tid] = Math.max(0.6, Math.round((state.equipped[tid] - 0.1) * 10) / 10);
+            renderAll();
+          });
+        }
+        if (incBtn) {
+          incBtn.addEventListener('click', () => {
+            RetroSFX.click();
+            state.equipped[tid] = Math.min(1.6, Math.round((state.equipped[tid] + 0.1) * 10) / 10);
+            renderAll();
+          });
+        }
+        if (delBtn) {
+          delBtn.addEventListener('click', () => {
+            RetroSFX.remove();
+            delete state.equipped[tid];
+            renderAll();
+          });
+        }
+
+        container.appendChild(row);
+      });
+
+      // Aspect ratio buttons highlight
+      document.querySelectorAll('.ar-btn').forEach(btn => {
+        if (btn.dataset.ar === state.aspectRatio) {
+          btn.classList.remove('pixel-btn-neutral');
+          btn.classList.add('pixel-btn-secondary');
+        } else {
+          btn.classList.remove('pixel-btn-secondary');
+          btn.classList.add('pixel-btn-neutral');
+        }
+      });
+    }
+
+    // ==========================================
+    // 8. Prompt Compilation & Completeness Score
+    // ==========================================
+    function compilePrompts() {
+      const equippedTags = Object.keys(state.equipped)
+        .map(id => ({ tag: state.tags.find(t => t.id === id), weight: state.equipped[id] }))
+        .filter(item => item.tag);
+
+      const posItems = equippedTags.filter(i => i.tag.cat !== 'negative');
+      const negItems = equippedTags.filter(i => i.tag.cat === 'negative');
+
+      let enPrompt = '';
+      if (posItems.length === 0) {
+        enPrompt = '';
+      } else if (state.modelFormat === 'mj') {
+        const parts = posItems.map(({ tag, weight }) =>
+          weight !== 1.0 ? `${tag.en}::${weight.toFixed(1)}` : tag.en
+        );
+        enPrompt = `${parts.join(', ')}, masterpiece, sharp focus --ar ${state.aspectRatio} --s ${state.stylize} --v 6.1`;
+        if (negItems.length > 0) {
+          const negShort = negItems.map(n => n.tag.en.split(',')[0]).join(', ');
+          enPrompt += ` --no ${negShort}`;
+        }
+      } else if (state.modelFormat === 'sd') {
+        const parts = posItems.map(({ tag, weight }) =>
+          weight !== 1.0 ? `(${tag.en}:${weight.toFixed(1)})` : tag.en
+        );
+        enPrompt = `masterpiece, best quality, ultra-detailed, ${parts.join(', ')}`;
+      } else {
+        // Natural Language (Gemini / DALL-E)
+        const parts = posItems.map(({ tag, weight }) =>
+          weight > 1.1 ? `strongly emphasizing ${tag.en}` : tag.en
+        );
+        enPrompt = `Create a high-detail illustration in ${state.aspectRatio} aspect ratio featuring ${parts.join(', ')}.`;
+      }
+
+      // Chinese summary
+      const zhParts = posItems.map(({ tag, weight }) =>
+        weight !== 1.0 ? `${tag.zh}(${weight.toFixed(1)}x)` : tag.zh
+      );
+      const zhPrompt =
+        zhParts.length > 0
+          ? `【畫面構成】${zhParts.join(' ＋ ')}｜比例 ${state.aspectRatio}｜風格強度 ${state.stylize}`
+          : '尚未選擇任何正向詞綴。';
+
+      const negPrompt =
+        negItems.length > 0
+          ? negItems.map(i => i.tag.en).join(', ')
+          : 'blurry, low quality, watermark, deformed';
+
+      document.getElementById('enPromptOutput').value = enPrompt;
+      document.getElementById('zhPromptOutput').value = zhPrompt;
+      document.getElementById('negPromptOutput').value = negPrompt;
+
+      const wordCount = enPrompt ? enPrompt.trim().split(/\s+/).length : 0;
+      document.getElementById('tokenCountText').textContent = `${wordCount} 詞 (Tokens)`;
+
+      // Completeness Diagnostic Score
+      const coveredCats = new Set(posItems.map(i => i.tag.cat));
+      const requiredCats = [
+        { id: 'subject', label: '主體角色' },
+        { id: 'style', label: '藝術畫風' },
+        { id: 'lighting', label: '光影天氣' },
+        { id: 'camera', label: '鏡頭構圖' },
+        { id: 'palette', label: '色彩氛圍' }
+      ];
+      const missing = requiredCats.filter(c => !coveredCats.has(c.id)).map(c => c.label);
+      const score = Math.min(100, coveredCats.size * 18 + (negItems.length > 0 ? 10 : 0));
+      const rank = score >= 90 ? 'S級 完美鍛造' : score >= 70 ? 'A級 結構優良' : score >= 50 ? 'B級 尚可生圖' : 'C級 靈感不足';
+
+      document.getElementById('promptScoreBadge').textContent = `${score} / 100 分 (${rank})`;
+      document.getElementById('promptScoreBar').style.width = `${score}%`;
+      document.getElementById('promptAdviceText').textContent =
+        missing.length === 0
+          ? '💡 診斷建議：五大視覺維度與負面詞皆已齊備，可以直接複製生圖或存入寶箱！'
+          : `💡 診斷建議：目前還可以補上「${missing.join('、')}」類別的詞綴，畫面細節會更豐富喔！`;
+    }
+
+    // ==========================================
+    // 9. Procedural 8-Bit Pixel Art Scene Canvas
+    // ==========================================
+    let animFrameId = null;
+    let tick = 0;
+
+    function getSceneConfig() {
+      const equippedTags = Object.keys(state.equipped)
+        .map(id => state.tags.find(t => t.id === id))
+        .filter(Boolean);
+
+      const subTag = equippedTags.find(t => t.cat === 'subject');
+      const litTag = equippedTags.find(t => t.cat === 'lighting');
+      const palTag = equippedTags.find(t => t.cat === 'palette');
+
+      const sceneType = subTag?.sceneType || 'city';
+      const weather = litTag?.weather || 'clear';
+      const paletteKey = palTag?.paletteKey || 'cyber';
+
+      const palettes = {
+        cyber: { skyTop: '#0d0628', skyBot: '#2b0f4c', sun: '#ff2a85', fg1: '#191036', fg2: '#0b061a', accent: '#00f5d4', star: '#ffd166' },
+        pastel: { skyTop: '#3b336a', skyBot: '#b87d9f', sun: '#ffe3a8', fg1: '#493c6e', fg2: '#2d234a', accent: '#80ffdb', star: '#ffffff' },
+        emerald: { skyTop: '#0f380f', skyBot: '#306230', sun: '#9bbc0f', fg1: '#0f380f', fg2: '#071f07', accent: '#8bac0f', star: '#9bbc0f' },
+        sunset: { skyTop: '#1f1135', skyBot: '#d9534f', sun: '#ffbe0b', fg1: '#2b193d', fg2: '#140b21', accent: '#00bbf9', star: '#ffea9f' },
+        gold: { skyTop: '#0f0c14', skyBot: '#2e2418', sun: '#ffd166', fg1: '#1c1712', fg2: '#0a0806', accent: '#f4a261', star: '#ffd166' }
+      };
+
+      const pal = palettes[paletteKey] || palettes.cyber;
+      const label = `場景：${subTag ? subTag.zh : '自由幻境'}｜${palTag ? palTag.zh : '霓虹預設'}`;
+      return { sceneType, weather, pal, label, subZh: subTag ? subTag.zh : 'AI 靈感鍛造' };
+    }
+
+    function drawPixelScene() {
+      const canvas = document.getElementById('pixelPreviewCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const W = canvas.width;
+      const H = canvas.height;
+      const P = 4; // pixel block size
+
+      const { sceneType, weather, pal, label } = getSceneConfig();
+      const labelEl = document.getElementById('canvasSceneLabel');
+      if (labelEl) labelEl.textContent = label;
+
+      // 1. Sky Gradient in 8-bit bands
+      const bands = 12;
+      for (let i = 0; i < bands; i++) {
+        ctx.fillStyle = i < bands / 2 ? pal.skyTop : pal.skyBot;
+        if (i === Math.floor(bands / 2)) ctx.fillStyle = pal.fg1;
+        ctx.fillRect(0, Math.floor((H / bands) * i), W, Math.ceil(H / bands));
+      }
+
+      // 2. Pixel Moon / Sun
+      const sunX = 270;
+      const sunY = 56;
+      const sunR = 26;
+      ctx.fillStyle = pal.sun;
+      for (let y = -sunR; y <= sunR; y += P) {
+        for (let x = -sunR; x <= sunR; x += P) {
+          if (x * x + y * y <= sunR * sunR) {
+            ctx.fillRect(sunX + x, sunY + y, P, P);
+          }
+        }
+      }
+
+      // 3. Twinkling Pixel Stars
+      ctx.fillStyle = pal.star;
+      for (let i = 0; i < 24; i++) {
+        const sx = ((i * 73 + state.canvasSeed * 13) % (W - 20)) + 10;
+        const sy = ((i * 41 + state.canvasSeed * 7) % 110) + 8;
+        if ((tick + i * 5) % 40 < 28) {
+          ctx.fillRect(sx, sy, P, P);
+        }
+      }
+
+      // 4. Scene Foreground Silhouette
+      if (sceneType === 'city' || sceneType === 'mecha') {
+        // Cyberpunk Pixel Skyline
+        for (let bx = 0; bx < W; bx += 28) {
+          const bh = 45 + ((bx * 19 + state.canvasSeed * 11) % 85);
+          ctx.fillStyle = pal.fg1;
+          ctx.fillRect(bx, H - bh - 28, 26, bh);
+          // Lit windows
+          ctx.fillStyle = pal.accent;
+          for (let wy = H - bh - 20; wy < H - 36; wy += 12) {
+            for (let wx = bx + 4; wx < bx + 20; wx += 8) {
+              if ((wx + wy + state.canvasSeed) % 3 === 0) {
+                ctx.fillRect(wx, wy, P, P * 1.5);
+              }
+            }
+          }
+        }
+      } else if (sceneType === 'island') {
+        // Floating Magical Island
+        const cx = W / 2;
+        const cy = H / 2 + 12 + Math.sin(tick * 0.06) * 4;
+        ctx.fillStyle = pal.fg1;
+        ctx.fillRect(cx - 72, cy, 144, 16);
+        ctx.fillRect(cx - 52, cy + 16, 104, 14);
+        ctx.fillRect(cx - 28, cy + 30, 56, 14);
+        // Crystal spire on island
+        ctx.fillStyle = pal.accent;
+        ctx.fillRect(cx - 8, cy - 36, 16, 36);
+        ctx.fillRect(cx - 4, cy - 50, 8, 14);
+      } else {
+        // Mystical Forest & Torii Shrine
+        for (let tx = 10; tx < W; tx += 32) {
+          const th = 50 + ((tx * 17 + state.canvasSeed) % 50);
+          ctx.fillStyle = pal.fg1;
+          ctx.fillRect(tx + 10, H - 28 - th, 8, th);
+          ctx.fillStyle = pal.accent;
+          ctx.fillRect(tx, H - 36 - th, 28, 20);
+        }
+      }
+
+      // 5. Ground Reflection Bar
+      ctx.fillStyle = pal.fg2;
+      ctx.fillRect(0, H - 28, W, 28);
+      ctx.fillStyle = pal.accent;
+      for (let gx = 0; gx < W; gx += 16) {
+        if ((gx + Math.floor(tick / 3)) % 32 < 16) {
+          ctx.fillRect(gx, H - 24, 8, 2);
+        }
+      }
+
+      // 6. Weather Particles (Rain or Fireflies)
+      if (weather === 'rain') {
+        ctx.fillStyle = pal.accent;
+        for (let r = 0; r < 28; r++) {
+          const rx = ((r * 37 + tick * 4) % W);
+          const ry = ((r * 53 + tick * 8) % (H - 28));
+          ctx.fillRect(rx, ry, 2, 10);
+        }
+      } else if (weather === 'fireflies') {
+        ctx.fillStyle = pal.star;
+        for (let f = 0; f < 16; f++) {
+          const fx = ((f * 59 + Math.floor(Math.sin(tick * 0.04 + f) * 14)) + W) % W;
+          const fy = 40 + ((f * 31 + Math.floor(Math.cos(tick * 0.05 + f) * 10)) % (H - 70));
+          ctx.fillRect(fx, fy, P, P);
+        }
+      }
+
+      // 7. HUD Overlay Tag on Canvas
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+      ctx.fillRect(8, 8, 132, 22);
+      ctx.fillStyle = pal.accent;
+      ctx.font = 'bold 11px monospace';
+      ctx.fillText(`AR ${state.aspectRatio} | S:${state.stylize}`, 14, 23);
+    }
+
+    function startCanvasLoop() {
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+      function loop() {
+        tick += 1;
+        drawPixelScene();
+        animFrameId = requestAnimationFrame(loop);
+      }
+      animFrameId = requestAnimationFrame(loop);
+    }
+
+    // ==========================================
+    // 10. Download PNG Recipe Card
+    // ==========================================
+    function downloadRecipeCard() {
+      RetroSFX.forge();
+      const srcCanvas = document.getElementById('pixelPreviewCanvas');
+      const outCanvas = document.createElement('canvas');
+      outCanvas.width = 600;
+      outCanvas.height = 460;
+      const ctx = outCanvas.getContext('2d');
+
+      // Background
+      ctx.fillStyle = '#181424';
+      ctx.fillRect(0, 0, 600, 460);
+      ctx.strokeStyle = '#ffd166';
+      ctx.lineWidth = 6;
+      ctx.strokeRect(8, 8, 584, 444);
+
+      // Header
+      ctx.fillStyle = '#ffd166';
+      ctx.font = 'bold 18px monospace';
+      ctx.fillText('PIXEL PROMPT FORGE - AI RECIPE CARD', 24, 40);
+
+      // Draw pixel scene preview
+      ctx.drawImage(srcCanvas, 24, 55, 552, 240);
+
+      // Prompt Text
+      const enText = document.getElementById('enPromptOutput').value || 'No prompt selected';
+      ctx.fillStyle = '#00e5a3';
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillText('PROMPT:', 24, 322);
+
+      ctx.fillStyle = '#f4f1ea';
+      ctx.font = '12px monospace';
+      const words = enText.split(' ');
+      let line = '';
+      let y = 344;
+      for (let i = 0; i < words.length; i++) {
+        const testLine = line + words[i] + ' ';
+        if (testLine.length > 72 && y < 415) {
+          ctx.fillText(line, 24, y);
+          line = words[i] + ' ';
+          y += 18;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line, 24, y);
+
+      const link = document.createElement('a');
+      link.download = `pixel-prompt-card-${Date.now()}.png`;
+      link.href = outCanvas.toDataURL('image/png');
+      link.click();
+      showToast('已匯出 PNG 靈感配方小卡！', '📸');
+    }
+
+    // ==========================================
+    // 11. Render LocalStorage Vault
+    // ==========================================
+    function renderVault() {
+      const container = document.getElementById('vaultListContainer');
+      const query = (document.getElementById('vaultSearchInput').value || '').trim().toLowerCase();
+      container.innerHTML = '';
+
+      const filtered = state.vault.filter(
+        item =>
+          item.title.toLowerCase().includes(query) ||
+          item.enPrompt.toLowerCase().includes(query) ||
+          item.zhPrompt.toLowerCase().includes(query)
+      );
+
+      document.getElementById('vaultCountBadge').textContent = `${state.vault.length} 筆收藏`;
+
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-full pixel-card p-6 text-center text-xs text-[var(--text-muted)]">
+            目前寶箱中沒有符合條件的配方，快按上方「💾 存入寶箱」收藏你的第一個靈感吧！
+          </div>
+        `;
+        return;
+      }
+
+      filtered.forEach(item => {
+        const card = document.createElement('div');
+        card.className = 'pixel-card p-3.5 flex flex-col justify-between gap-2.5';
+        card.innerHTML = `
+          <div>
+            <div class="flex items-center justify-between gap-2 mb-1">
+              <h3 class="font-bold text-xs sm:text-sm text-[var(--accent-gold)] truncate">${item.title}</h3>
+              <span class="text-[10px] px-1.5 py-0.5 bg-black/30 shrink-0">${item.ar || '16:9'}</span>
+            </div>
+            <p class="text-[11px] text-[var(--text-muted)] mb-2 line-clamp-2">${item.zhPrompt}</p>
+            <div class="pixel-input p-2 text-[11px] font-mono line-clamp-3 break-all">${item.enPrompt}</div>
+          </div>
+          <div class="flex items-center justify-between gap-1.5 pt-2 border-t border-[var(--border-inner)]">
+            <span class="text-[10px] text-[var(--text-muted)]">${item.createdAt || ''}</span>
+            <div class="flex items-center gap-1.5">
+              <button type="button" data-vault-action="load" class="pixel-btn pixel-btn-secondary px-2 py-1 text-[11px]">
+                ⚡ 回填鐵砧
+              </button>
+              <button type="button" data-vault-action="copy" class="pixel-btn pixel-btn-neutral px-2 py-1 text-[11px]">
+                📋 複製
+              </button>
+              <button type="button" data-vault-action="delete" class="pixel-btn bg-[#ef476f] text-white px-2 py-1 text-[11px]">
+                🗑️
+              </button>
+            </div>
+          </div>
+        `;
+
+        card.querySelector('[data-vault-action="load"]').addEventListener('click', () => {
+          RetroSFX.forge();
+          if (item.equipped) {
+            state.equipped = { ...item.equipped };
+          }
+          if (item.ar) state.aspectRatio = item.ar;
+          if (item.stylize) {
+            state.stylize = item.stylize;
+            document.getElementById('stylizeRange').value = item.stylize;
+            document.getElementById('stylizeValueText').textContent = item.stylize;
+          }
+          if (item.modelFormat) {
+            state.modelFormat = item.modelFormat;
+            document.getElementById('modelFormatSelect').value = item.modelFormat;
+          }
+          triggerAnvilAnimation();
+          renderAll();
+          showToast(`已將「${item.title}」回填至鍛造台！`, '⚡');
+        });
+
+        card.querySelector('[data-vault-action="copy"]').addEventListener('click', () => {
+          copyTextToClipboard(item.enPrompt, '已複製寶箱配方的英文 Prompt！');
+        });
+
+        card.querySelector('[data-vault-action="delete"]').addEventListener('click', () => {
+          RetroSFX.remove();
+          state.vault = state.vault.filter(v => v.id !== item.id);
+          saveToStorage();
+          renderVault();
+          showToast('已從寶箱移除該筆配方', '🗑️');
+        });
+
+        container.appendChild(card);
+      });
+    }
+
+    // ==========================================
+    // 12. Master Render & Event Bindings
+    // ==========================================
+    function renderAll() {
+      applyTheme();
+      updateRPGStatus();
+      renderCategoryTabs();
+      renderTagGrid();
+      renderEquippedAnvil();
+      compilePrompts();
+      renderVault();
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadFromStorage();
+      renderPresets();
+      renderAll();
+      startCanvasLoop();
+
+      // Theme Toggle
+      document.getElementById('themeToggleBtn').addEventListener('click', () => {
+        RetroSFX.click();
+        state.theme = state.theme === 'dark' ? 'light' : 'dark';
+        saveToStorage();
+        applyTheme();
+        showToast(
+          state.theme === 'dark' ? '已切換至「🌙 暗黑地下城」模式' : '已切換至「☀️ 晨光羊皮紙」模式',
+          state.theme === 'dark' ? '🌙' : '☀️'
+        );
+      });
+
+      // SFX Toggle
+      document.getElementById('sfxToggleBtn').addEventListener('click', () => {
+        RetroSFX.enabled = !RetroSFX.enabled;
+        if (RetroSFX.enabled) RetroSFX.click();
+        document.getElementById('sfxIcon').textContent = RetroSFX.enabled ? '🔊' : '🔇';
+        document.getElementById('sfxLabel').textContent = RetroSFX.enabled ? '8-Bit 音效: 開' : '8-Bit 音效: 關';
+        showToast(RetroSFX.enabled ? '已開啟 8-Bit 合成音效' : '已將音效靜音', RetroSFX.enabled ? '🔊' : '🔇');
+      });
+
+      // Random Gacha Slot Machine
+      document.getElementById('gachaSpinBtn').addEventListener('click', () => {
+        RetroSFX.gacha();
+        const newEquipped = {};
+        ['subject', 'style', 'lighting', 'camera', 'palette'].forEach(catId => {
+          const pool = state.tags.filter(t => t.cat === catId);
+          if (pool.length > 0) {
+            const pick = pool[Math.floor(Math.random() * pool.length)];
+            const randomWeight = [1.0, 1.0, 1.1, 1.2, 1.3][Math.floor(Math.random() * 5)];
+            newEquipped[pick.id] = randomWeight;
+          }
+        });
+        // Add 2 default negative tags
+        newEquipped['neg_blurry'] = 1.0;
+        newEquipped['neg_watermark'] = 1.0;
+
+        state.equipped = newEquipped;
+        state.forgeCount += 1;
+        state.canvasSeed = Math.floor(Math.random() * 1000);
+        triggerAnvilAnimation();
+        saveToStorage();
+        renderAll();
+        showToast('🎲 扭蛋鍛造完成！已隨機組合五大維度靈感！', '🎰');
+      });
+
+      // Clear All
+      document.getElementById('clearAllBtn').addEventListener('click', () => {
+        RetroSFX.remove();
+        state.equipped = {};
+        renderAll();
+        showToast('已清空鍛造鐵砧上的所有詞綴', '🧹');
+      });
+
+      // Add Custom Tag
+      document.getElementById('addCustomTagBtn').addEventListener('click', () => {
+        const zhInput = document.getElementById('customTagZhInput');
+        const enInput = document.getElementById('customTagEnInput');
+        const zh = zhInput.value.trim();
+        const en = enInput.value.trim();
+        if (!zh || !en) {
+          showToast('請同時輸入自訂詞綴的「中文名稱」與「英文 Prompt」喔！', '⚠️');
+          return;
+        }
+        const newTag = {
+          id: `custom_${Date.now()}`,
+          cat: state.activeCategory,
+          zh,
+          en,
+          icon: '⭐',
+          isCustom: true
+        };
+        state.tags.unshift(newTag);
+        state.equipped[newTag.id] = 1.0;
+        state.forgeCount += 1;
+        zhInput.value = '';
+        enInput.value = '';
+        RetroSFX.forge();
+        saveToStorage();
+        renderAll();
+        showToast(`已新增並裝備自訂詞綴：${zh}`, '⭐');
+      });
+
+      // Model Format Change
+      document.getElementById('modelFormatSelect').addEventListener('change', e => {
+        RetroSFX.click();
+        state.modelFormat = e.target.value;
+        compilePrompts();
+      });
+
+      // Aspect Ratio Buttons
+      document.querySelectorAll('.ar-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          RetroSFX.click();
+          state.aspectRatio = btn.dataset.ar;
+          renderEquippedAnvil();
+          compilePrompts();
+        });
+      });
+
+      // Stylize Slider
+      document.getElementById('stylizeRange').addEventListener('input', e => {
+        state.stylize = Number(e.target.value);
+        document.getElementById('stylizeValueText').textContent = state.stylize;
+        compilePrompts();
+      });
+
+      // Rerender Seed
+      document.getElementById('rerenderSeedBtn').addEventListener('click', () => {
+        RetroSFX.click();
+        state.canvasSeed = Math.floor(Math.random() * 1000);
+        showToast('已變換 8-Bit 像素預覽場景構圖！', '🔄');
+      });
+
+      // Download PNG Card
+      document.getElementById('downloadCardBtn').addEventListener('click', downloadRecipeCard);
+
+      // Copy Buttons
+      document.getElementById('copyEnPromptBtn').addEventListener('click', () => {
+        const text = document.getElementById('enPromptOutput').value;
+        copyTextToClipboard(text, '已複製英文生圖 Prompt！可貼至生圖工具');
+      });
+      document.getElementById('copyZhPromptBtn').addEventListener('click', () => {
+        const text = document.getElementById('zhPromptOutput').value;
+        copyTextToClipboard(text, '已複製中文語意解析！');
+      });
+      document.getElementById('copyNegPromptBtn').addEventListener('click', () => {
+        const text = document.getElementById('negPromptOutput').value;
+        copyTextToClipboard(text, '已複製 Negative Prompt 負面排除詞！');
+      });
+
+      // Save to Vault
+      document.getElementById('saveToVaultBtn').addEventListener('click', () => {
+        const enPrompt = document.getElementById('enPromptOutput').value.trim();
+        const zhPrompt = document.getElementById('zhPromptOutput').value.trim();
+        const negPrompt = document.getElementById('negPromptOutput').value.trim();
+        if (!enPrompt) {
+          showToast('請先選擇至少一個詞綴再存入寶箱！', '⚠️');
+          return;
+        }
+        const equippedTags = Object.keys(state.equipped)
+          .map(id => state.tags.find(t => t.id === id))
+          .filter(Boolean);
+        const firstTwo = equippedTags.slice(0, 2).map(t => t.zh).join(' × ') || '自訂靈感配方';
+        const now = new Date();
+        const timeStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(
+          now.getDate()
+        ).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+        state.vault.unshift({
+          id: `vault_${Date.now()}`,
+          title: firstTwo,
+          enPrompt,
+          zhPrompt,
+          negPrompt,
+          equipped: { ...state.equipped },
+          ar: state.aspectRatio,
+          stylize: state.stylize,
+          modelFormat: state.modelFormat,
+          createdAt: timeStr
+        });
+        state.forgeCount += 1;
+        RetroSFX.forge();
+        saveToStorage();
+        renderAll();
+        showToast(`已將「${firstTwo}」存入靈感寶箱！`, '💾');
+      });
+
+      // Vault Search & Export
+      document.getElementById('vaultSearchInput').addEventListener('input', renderVault);
+      document.getElementById('exportVaultBtn').addEventListener('click', () => {
+        RetroSFX.click();
+        const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(state.vault, null, 2));
+        const a = document.createElement('a');
+        a.setAttribute('href', dataStr);
+        a.setAttribute('download', 'pixel-prompt-vault.json');
+        a.click();
+        showToast('已匯出寶箱收藏 JSON 備份檔！', '⬇️');
+      });
+
+      // Spec Modal
+      const specModal = document.getElementById('specModal');
+      document.getElementById('openSpecModalBtn').addEventListener('click', () => {
+        RetroSFX.click();
+        specModal.classList.remove('hidden');
+        specModal.classList.add('flex');
+      });
+      document.getElementById('closeSpecModalBtn').addEventListener('click', () => {
+        RetroSFX.click();
+        specModal.classList.add('hidden');
+        specModal.classList.remove('flex');
+      });
+      specModal.addEventListener('click', e => {
+        if (e.target === specModal) {
+          specModal.classList.add('hidden');
+          specModal.classList.remove('flex');
+        }
+      });
+    });
+  </script>
+</body>
+</html>
